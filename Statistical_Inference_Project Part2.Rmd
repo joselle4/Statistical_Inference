@@ -1,0 +1,163 @@
+---
+title: 'Statistical Inference Project Part 2: Basic Inferential Data Analysis'
+author: "Joselle Abagat"
+date: "5/27/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Criteria
+1. Did you show where the distribution is centered at and compare it to the theoretical center of the distribution?
+2. Did you show how variable it is and compare it to the theoretical variance of the distribution?
+3. Did you perform an exploratory data analysis of at least a single plot or table highlighting basic features of the data?
+4. Did the student perform some relevant confidence intervals and/or tests?
+5. Were the results of the tests and/or intervals interpreted in the context of the problem correctly?
+6. Did the student describe the assumptions needed for their conclusions?
+
+## Load libraries
+
+The R libraries used in this report are: ggplot2, datatable, DT
+```{r, include = FALSE}
+library(ggplot2)
+library(data.table)
+library(DT)
+```
+
+## Part 2: Basic Inferential Data Analysis - ToothGrowth Data
+
+### 1. Load the ToothGrowth data and perform some basic exploratory data analyses
+#### Description
+The response is the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, (orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+
+#### Format
+A data frame with 60 observations on 3 variables.
+[,1]	len	numeric	Tooth length
+[,2]	supp	factor	Supplement type (VC or OJ).
+[,3]	dose	numeric	Dose in milligrams/day
+
+```{r, results='markup'}
+tg <- data.table(ToothGrowth)
+# check the dimensions
+dim(tg)
+# look at the first set of data
+head(tg)
+# look at the last set of data
+tail(tg)
+# check the column names
+colnames(tg)
+# check the length of data
+nrow(tg)
+# factor delivery methods
+levels(factor(tg$supp))
+# factor doses
+levels(factor(tg$dose))
+# look at the density distributions by doses
+ggplot(tg, aes(x = len, fill = factor(dose))) + geom_density(alpha = 0.5)
+# look at the density distributions by delivery methods
+ggplot(tg, aes(x = len, fill = factor(supp))) + geom_density(alpha = 0.5)
+```
+
+Looking at the density plots, 2 ml/day seems to lead to the largest tooth growth.  Using orange juice as a delivery method also seems to lead to the largest tooth growth.
+
+### 2. Provide a basic summary of the data.
+```{r, results='markup'}
+# overall summary
+summary(tg)
+```
+
+The basic summary doesn't really make sense since it combines the means for all doses and all delivery methods, so let's summarize the data grouped by delivery method and by dose.
+```{r, results='markup'}
+# summary by delivery methods
+tgSummary <- tg[, .(min(len), quantile(len, .25), median(len), mean(len), quantile(len, .75), max(len)), keyby = c("supp", "dose")]
+colnames(tgSummary) <- c("supp", "dose", "min", "percentile25", "median", "mean", "percentile75", "max")
+datatable(tgSummary)
+```
+
+### 3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+```{r, results='markup'}
+# tooth growth using OJ at 0.5 ml/day
+ojHalf <- tg[supp == "OJ" & dose == 0.5]
+nOJHalf <- nrow(ojHalf)
+sOJHalf <- sd(ojHalf$len)
+# tooth growth using OJ at 1.0 ml/day
+oj1 <- tg[supp == "OJ" & dose == 1]
+nOJ1 <- nrow(oj1)
+sOJ1 <- sd(oj1$len)
+# tooth growth using OJ at 2.0 ml/day
+oj2 <- tg[supp == "OJ" & dose == 2]
+nOJ2 <- nrow(oj2)
+sOJ2 <- sd(oj2$len)
+# tooth growth using VC at 0.5 ml/day
+vcHalf <- tg[supp == "VC" & dose == 0.5]
+nVCHalf <- nrow(vcHalf)
+sVCHalf <- sd(vcHalf$len)
+# tooth growth using VC at 1.0 ml/day
+vc1 <- tg[supp == "VC" & dose == 1]
+nVC1 <- nrow(vc1)
+sVC1 <- sd(vc1$len)
+# tooth growth using VC at 2.0 ml/day
+vc2 <- tg[supp == "VC" & dose == 2]
+nVC2 <- nrow(vc2)
+sVC2 <- sd(vc2$len)
+
+# Calc using 95th Confidence Intervals 
+# Compare Confidence Intervals at Dose = .5 using OJ
+ciOJHalf <- round(mean(ojHalf$len) + c(-1,1)*qnorm(0.975)*sOJHalf/sqrt(nOJHalf),2)
+# Compare Confidence Intervals at Dose = .5 using VC
+ciVCHalf <- round(mean(vcHalf$len) + c(-1,1)*qnorm(0.975)*sVCHalf/sqrt(nVCHalf),2)
+# Compare Confidence Intervals at Dose = 1 using OJ
+ciOJ1 <- round(mean(oj1$len) + c(-1,1)*qnorm(0.975)*sOJ1/sqrt(nOJ1),2)
+# Compare Confidence Intervals at Dose = 1 using VC
+ciVC1 <- round(mean(vc1$len) + c(-1,1)*qnorm(0.975)*sVC1/sqrt(nVC1),2)
+# Compare Confidence Intervals at Dose = 2 using OJ
+ciOJ2 <- round(mean(oj2$len) + c(-1,1)*qnorm(0.975)*sOJ2/sqrt(nOJ2),2)
+# Compare Confidence Intervals at Dose = 2 using VC
+ciVC2 <- round(mean(vc2$len) + c(-1,1)*qnorm(0.975)*sVC2/sqrt(nVC2),2)
+```
+
+Let's look at the summary of the data containing lower/upper limits with 95th Confidence Interval
+```{r, results='markup'}
+cOJHalf <- c(mean(ojHalf$len), round(sOJHalf, 2), ciOJHalf)
+cVCHalf <- c(mean(vcHalf$len), round(sVCHalf, 2), ciVCHalf)
+cOJ1 <- c(mean(oj1$len), round(sOJ1, 2), ciOJ1)
+cVC1 <- c(mean(vc1$len), round(sVC1, 2), ciVC1)
+cOJ2 <- c(mean(oj2$len), round(sOJ2, 2), ciOJ2)
+cVC2 <- c(mean(vc2$len), round(sVC2, 2), ciVC2)
+
+dtOJ <- data.table(rbind(cOJHalf, cOJ1, cOJ2))
+dtOJ <- cbind("OJ", c(.5, 1, 2), dtOJ)
+
+dtVC <- data.table(rbind(cVCHalf, cVC1, cVC2))
+dtVC <- cbind("VC", c(.5, 1, 2), dtVC)
+
+dt <- rbind(dtOJ, dtVC)
+colnames(dt) <- c("supp", "dose", "mean", "sd", "lower", "upper")
+
+datatable(dt)
+```
+
+Now, let's use the hypothesis tests to compare tooth growth by delivery method and dose.  Using this will allow us to compare both delivery methods by dose. In this way, we may be able to tell more about the data.
+```{r, results='markup'}
+# t.test at 0.5ml dose
+t.test(ojHalf$len, vcHalf$len, paired = FALSE, var.equal = FALSE)
+# t.test at 1.0ml dose
+t.test(oj1$len, vc1$len, paired = FALSE, var.equal = FALSE)
+# t.test at 2.0ml dose
+t.test(oj2$len, vc2$len, paired = FALSE, var.equal = FALSE)
+```
+
+### 4. State your conclusions and the assumptions needed for your conclusions.
+- Based on the initial exploration of the ToothGrowth data, a dose of 2 ml/day seems to lead to the largest tooth growth.  Using orange juice as a delivery method also seems to lead to the largest tooth growth.  The summary validates this since at 2ml/day, both delivery methods show the highest mean: 26.06 using OJ and 26.14 using VC. 
+- The confidence intervals shown in each of the delivery method and dose shows that if we were to repeat the experiment, 95% of the data are expected to fall within these upper and lower limits.  We can see that all the means by supp and dose are within the calculated limits.
+- t.tests provided the most meaningful look at the data
+- Assuming that the null hypothesis is true, we would reject the null hypothesis if the p-value is less than alpha (at alpha = 0.05).
+    + at dose = 0.5, the p-value = 0.006 < 0.05, therefore, we would reject the null hypothesis.  This means that the difference is statistically significant using either delivery methods at this dosage.  This makes sense since the means of OJ and VC at 0.5 dose are quite different.  The confidence interval range says that 95% of the time, there could be as little as 1.7 or as large as 8.8 difference in tooth growth length when using either OJ or VC.
+    + at dose = 1, the p-value = 0.001 < 0.05.  The same conclusion can be derived here as when the dose = 0.5. The confidence interval range says that 95% of the time, there could be as little as 2.8 or as large as 9.1 difference in tooth growth length when using either OJ or VC.
+    + at dose = 2, the p-value = 0.964 > 0.05, therefore, we would not reject the null hypothesis.  This means that the difference is not statistically significant using either delivery methods at this dosage.  This is further proven by the fact that 0 is contained within the confidence interval.  This means that at some point, there would be no difference at all in growth length if one uses either OJ or VC.
+
+#### Based on the t.tests performed, while it's true that the 2ml/day dosage leads to the largest tooth growth, it doesn't matter as much which delivery method we use at this dosage.  However, if we decide to use 0.5ml/day or 1ml/day, then tooth growth will be affected depending on whether OJ or VC is used as the delivery method.
